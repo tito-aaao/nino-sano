@@ -346,15 +346,36 @@ const PROXIMO = [
 ];
 
 /* ---------- VACUNAS QUE SE INDICAN EN CADA CONTROL ---------- */
+/* Cada fila: [edad, respuesta correcta, explicación, pregunta explícita].
+   El 4º elemento aclara SIEMPRE si se pregunta por lo que se ADMINISTRA hoy
+   o por lo que se INDICA de forma anticipada para un control futuro —
+   el propio apunte mezcla ambos patrones según el mes, así que la pregunta
+   nunca puede quedar genérica. */
 const VACUNAS = [
-  ['diada','Verificar las del RN: BCG y VHB','En la díada no se indica hacia adelante: se verifica lo que ya recibió.'],
-  ['m1','Las PNI de los 2 meses (hexavalente, neumococo, Bexsero) y la no PNI rotavirus','En el control del mes se indican las del mes siguiente.'],
-  ['m2','La no PNI de los 3 meses: Menveo (meningocócica conjugada ACWY)','A los 2 meses lo único que se indica es Menveo del 3° mes.'],
-  ['m3','Las PNI de los 4 meses: 2ª dosis de hexavalente, neumocócica y Bexsero, más la 2ª de rotavirus (no PNI)','El control de los 3 meses indica el esquema de los 4.'],
-  ['m4','Las PNI de los 6 meses: 3ª hexavalente y neumocócica solo si es RNPT; además 2ª Menveo (5 meses) y 3ª Rotateq (6 meses), no PNI','Ojo: a los 6 meses la neumocócica solo va si fue prematuro.'],
-  ['m6','Las vacunas del PNI del esquema de los 6 meses según calendario vigente, y derivar a campañas de Influenza si corresponde','Se explican beneficios y efectos secundarios; el paracetamol post-vacuna es solo ante fiebre o dolor significativo, nunca profiláctico.'],
-  ['m8','Solo derivar a campañas de vacunación vigentes (Influenza); no hay dosis del PNI programada a los 8 meses','A los 8 meses no corresponde ninguna dosis nueva del PNI: se revisa el registro y se deriva a campañas estacionales.'],
-  ['m12','Las PNI de los 12 meses: 1ª dosis de SRP, refuerzo de neumocócica conjugada y dosis única de meningocócica conjugada tetravalente (ACWY); derivar a campañas de Influenza si corresponde','El refuerzo de hexavalente y de meningocócica B recién llegan a los 18 meses, no a los 12.']
+  ['diada','Solo se verifica que ya haya recibido BCG y hepatitis B en la maternidad; no se indica nada nuevo',
+   'En la díada no se indica hacia adelante: se verifica lo que ya recibió.',
+   'En el control de la díada, ¿corresponde indicar alguna vacuna nueva o solo verificar las del recién nacido?'],
+  ['m1','Las PNI de los 2 meses (hexavalente, neumocócica, meningocócica B) y la no PNI rotavirus',
+   'En el control del mes se indican, de forma anticipada, las vacunas que le tocan en el control siguiente.',
+   'En el control del mes, ¿qué vacunas se indican HOY de forma anticipada, para que las reciba en el PRÓXIMO control (2 meses)?'],
+  ['m2','La no PNI de los 3 meses: Menveo (meningocócica conjugada ACWY)',
+   'Las PNI de los 2 meses ya se están administrando en este mismo control (se indicaron antes, en el control del mes); lo único NUEVO que se indica hoy, mirando hacia adelante, es el Menveo del 3° mes.',
+   'En el control de los 2 meses, ¿qué vacuna se indica HOY de forma anticipada, pensando en el control de los 3 meses?'],
+  ['m3','Las PNI de los 4 meses: 2ª dosis de hexavalente, neumocócica y meningocócica B, más la 2ª de rotavirus (no PNI)',
+   'El control de los 3 meses indica, de forma anticipada, el esquema completo de los 4 meses.',
+   'En el control de los 3 meses, ¿qué vacunas se indican HOY de forma anticipada, para el PRÓXIMO control (4 meses)?'],
+  ['m4','Las PNI de los 6 meses (3ª hexavalente; neumocócica solo si es RNPT) y, además, las no PNI de los 5 y 6 meses (2ª Menveo y 3ª Rotateq)',
+   'Como a los 5 meses no hay control de vacunas propiamente tal (es la consulta nutricional), el control de los 4 meses adelanta la indicación de dos controles a la vez: el de los 5 y el de los 6.',
+   'En el control de los 4 meses, ¿qué vacunas se indican HOY de forma anticipada, para los controles de los 5 Y los 6 meses?'],
+  ['m6','Se administran/confirman HOY las vacunas del esquema de los 6 meses (las mismas que ya se habían indicado a los 4 meses), y se deriva a campañas de Influenza si corresponde',
+   'A diferencia de los controles anteriores, aquí no se indica nada nuevo "hacia adelante": simplemente se concreta en el vacunatorio lo que ya se había anticipado dos controles atrás.',
+   'En el control de los 6 meses, ¿qué corresponde respecto a vacunas EN ESTE MISMO control (no en uno futuro)?'],
+  ['m8','No hay ninguna dosis nueva del PNI que indicar; solo se deriva a campañas de vacunación vigentes (Influenza)',
+   'A los 8 meses no hay dosis PNI programada (la siguiente es recién a los 12 meses), así que no hay nada que indicar ni de forma anticipada ni para hoy, salvo campañas estacionales.',
+   'En el control de los 8 meses, ¿qué corresponde indicar respecto a vacunas del PNI?'],
+  ['m12','Las del PNI de los 12 meses (1ª dosis de SRP, refuerzo de neumocócica y dosis única de meningocócica ACWY) para administrar HOY, Y, de forma anticipada, las de los 18 meses (refuerzo de hexavalente y de meningocócica B)',
+   'Al igual que a los 4 meses, este control mira en dos direcciones a la vez: concreta la dosis que corresponde hoy y adelanta la del próximo hito, a los 18 meses.',
+   'En el control de los 12 meses, ¿qué vacunas corresponden HOY y cuáles se indican de forma anticipada para el control de los 18 meses?']
 ];
 
 /* ---------- DERIVACIONES ---------- */
@@ -665,10 +686,10 @@ function qProximo(){
 }
 function qVacuna(){
   const i = pickIndex(VACUNAS.length,'V');
-  const [age,txt,e] = VACUNAS[i];
+  const [age,txt,e,customQ] = VACUNAS[i];
   const pool = shuffle(VACUNAS.filter(v=>v[0]!==age)).slice(0,3).map(v=>v[1]);
   const opts = shuffle([txt,...pool]);
-  return {tag:'Vacunas', age, showAge:true, q:'En el '+ageLabel(age)+', ¿qué vacunas corresponde indicar?', sub:'',
+  return {tag:'Vacunas', age, showAge:true, q:customQ, sub:'',
     opts, a:opts.indexOf(txt), e, id:'V'+i};
 }
 function qDeriv(){
@@ -975,8 +996,7 @@ function buildBanco(){
     q:'¿Cuál es el próximo control después del '+ageLabel(p[0])+'?',
     a:p[1], e:''}));
   VACUNAS.forEach((v,i)=>rows.push({age:v[0], tema:'Vacunas',
-    q:'En el '+ageLabel(v[0])+', ¿qué vacunas corresponde indicar?',
-    a:v[1], e:v[2]}));
+    q:v[3], a:v[1], e:v[2]}));
   DERIV.forEach((d,i)=>rows.push({age:'—', tema:'Derivaciones',
     q:'Hallazgo: '+d[0]+'. ¿Qué haces?', a:d[1], e:d[2]}));
   FIJAS.forEach((f,i)=>rows.push({age:'—', tema:f.t,
