@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TURNO · Control de Niño Sano (díada → 4 meses)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E1B24;
+  --panel:#16262F;
+  --line:#24404C;
+  --carnet:#F4EDDE;
+  --carnet-line:#D9CDB4;
+  --sello:#FF7A45;
+  --ok:#3FD69B;
+  --bad:#FF5470;
+  --gold:#FFD166;
+  --muted:#7E9AA6;
+  --ink:#E7F1F3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:radial-gradient(900px 500px at 50% -15%,#1B3A46 0,transparent 60%),var(--bg);
+  color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;
+  overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;
+}
+.wrap{height:100dvh;max-width:640px;margin:0 auto;display:flex;flex-direction:column;position:relative}
+
+/* HUD */
+#hud{display:flex;gap:7px;align-items:center;padding:10px 12px 4px;font-family:'JetBrains Mono',monospace;font-size:11px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;line-height:1}
+#score{color:var(--gold);font-weight:700;font-size:13px}
+#combo{color:var(--ok)}
+#timeWrap{height:6px;background:#0A151C;margin:6px 12px 0;border-radius:99px;overflow:hidden}
+#timeBar{height:100%;width:100%;background:linear-gradient(90deg,var(--ok),var(--gold));transition:width .1s linear}
+#queue{display:flex;gap:4px;padding:6px 12px 0;height:34px;align-items:flex-end}
+
+/* CARNET */
+#carnet{
+  flex:1;margin:8px 12px 0;background:var(--carnet);color:#20303A;border-radius:14px;
+  padding:14px 15px;position:relative;overflow:hidden;
+  background-image:repeating-linear-gradient(180deg,transparent 0 27px,var(--carnet-line) 27px 28px);
+  box-shadow:0 10px 0 -4px #C9BC9F, 0 14px 30px rgba(0,0,0,.4);
+  display:flex;flex-direction:column;
+}
+#carnet::before{content:'CARNÉ DE CONTROL · CESFAM';position:absolute;top:8px;right:12px;
+  font-family:'JetBrains Mono',monospace;font-size:9px;color:#A2957A;letter-spacing:1px}
+.pt{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.pt canvas{image-rendering:pixelated;width:52px;height:52px}
+.ptname{font-family:'Silkscreen',monospace;font-size:13px;color:#1B4C5C}
+.pttag{font-family:'JetBrains Mono',monospace;font-size:10px;color:#8A7F66}
+#qtext{font-size:16px;line-height:1.45;font-weight:600;margin:4px 0 2px}
+#qsub{font-size:13px;line-height:1.45;color:#5C6B75;margin-bottom:8px}
+#opts{display:flex;flex-direction:column;gap:7px;margin-top:auto}
+.opt{
+  background:#FFFDF7;border:1.5px solid #CFC2A6;color:#20303A;border-radius:9px;padding:11px 12px;
+  text-align:left;font-size:14px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;line-height:1.35;
+  transition:transform .06s,border-color .12s;
+}
+.opt:hover{border-color:#1B4C5C}
+.opt:active{transform:translateY(1px)}
+.opt.ok{background:#DFF7EC;border-color:#1FA97A;font-weight:600}
+.opt.no{background:#FFE2E8;border-color:#D6455F}
+.opt.dim{opacity:.35}
+#explain{font-size:13px;line-height:1.5;color:#3C5460;border-top:1px dashed #C9BC9F;margin-top:10px;padding-top:9px}
+.hidden{display:none!important}
+
+/* SELLO */
+#sello{
+  position:absolute;top:38%;left:50%;transform:translate(-50%,-50%) rotate(-13deg) scale(2.4);
+  font-family:'Silkscreen',monospace;font-size:22px;padding:8px 14px;border:4px solid var(--sello);
+  color:var(--sello);border-radius:6px;opacity:0;pointer-events:none;text-align:center;
+  letter-spacing:1px;max-width:88%;
+}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-13deg) scale(2.4)}
+  35%{opacity:1;transform:translate(-50%,-50%) rotate(-13deg) scale(.95)}
+  45%{transform:translate(-50%,-50%) rotate(-13deg) scale(1.04)}
+  100%{opacity:.92;transform:translate(-50%,-50%) rotate(-13deg) scale(1)}}
+.stamping{animation:stamp .38s ease-out forwards}
+
+/* FOOTER */
+#foot{display:flex;gap:8px;padding:10px 12px 14px}
+#foot button{flex:1}
+button.big{font-family:'Silkscreen',monospace;font-size:14px;background:var(--gold);color:#14232B;border:none;
+  border-radius:10px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #A8862F}
+button.big:active{transform:translateY(3px);box-shadow:0 1px 0 #A8862F}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:10px;
+  padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+
+/* PAUSA */
+#pauseBtn{background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 9px;cursor:pointer;line-height:1}
+#pauseBtn:hover{color:var(--gold);border-color:var(--gold)}
+#pausa{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;background:rgba(14,27,36,.55);backdrop-filter:blur(1.5px);
+  -webkit-backdrop-filter:blur(1.5px);padding:24px}
+#pausa .plabel{font-family:'Silkscreen',monospace;font-size:22px;color:var(--gold);
+  text-shadow:2px 2px 0 rgba(0,0,0,.6);letter-spacing:2px}
+#pausa .phint{font-family:'JetBrains Mono',monospace;font-size:12px;color:#D8E6EA;
+  background:rgba(14,27,36,.75);border:1px solid var(--line);border-radius:8px;padding:8px 11px;
+  text-align:center;line-height:1.5;max-width:300px}
+#pausa button{font-family:'Silkscreen',monospace;font-size:14px;background:var(--gold);color:#14232B;
+  border:none;border-radius:10px;padding:13px 22px;cursor:pointer;box-shadow:0 4px 0 #A8862F}
+#pausa button:active{transform:translateY(3px);box-shadow:0 1px 0 #A8862F}
+.frozen{pointer-events:none}
+
+/* SCREENS */
+.screen{position:absolute;inset:0;background:rgba(9,20,27,.96);z-index:9;display:flex;flex-direction:column;
+  justify-content:center;gap:14px;padding:22px;overflow-y:auto}
+h1{font-family:'Silkscreen',monospace;font-size:27px;margin:0;color:var(--gold);text-shadow:3px 3px 0 #8A6A16;line-height:1.15}
+h2{font-family:'Silkscreen',monospace;font-size:16px;margin:0}
+p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ok);letter-spacing:1.5px}
+ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px}
+td{padding:6px 4px;border-bottom:1px solid #1D323C}
+.bar{height:6px;background:#0A151C;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="hud">
+    <div class="box" id="score">0</div>
+    <div class="box" id="lives">♥♥♥</div>
+    <div class="box" id="combo">x1</div>
+    <div class="box" id="prog">1/14</div>
+    <div style="flex:1"></div>
+    <button id="pauseBtn">⏸ PAUSA</button>
+    <div class="box" id="best">TOP 0</div>
+  </div>
+  <div id="timeWrap"><div id="timeBar"></div></div>
+  <div id="queue"></div>
+
+  <div id="carnet">
+    <div class="pt">
+      <canvas id="baby" width="26" height="26"></canvas>
+      <div>
+        <div class="ptname" id="ptname">—</div>
+        <div class="pttag" id="pttag">—</div>
+      </div>
+    </div>
+    <div id="qtext"></div>
+    <div id="qsub"></div>
+    <div id="opts"></div>
+    <div id="explain" class="hidden"></div>
+    <div id="sello"></div>
+  </div>
+
+  <div id="foot">
+    <button class="ghost" id="matrona">🤙 Preguntar a la matrona (1)</button>
+    <button class="big hidden" id="next">SIGUIENTE</button>
+  </div>
+
+  <div id="pausa" class="hidden">
+    <div class="plabel">EN PAUSA</div>
+    <div class="phint">El reloj está detenido. La pregunta se sigue leyendo abajo, pero no podís responder hasta reanudar.</div>
+    <button id="resume">SEGUIR ATENDIENDO</button>
+  </div>
+
+  <!-- MENU -->
+  <div class="screen" id="menu">
+    <div class="eyebrow">CESFAM · SUPERVISIÓN DE SALUD 0–4 MESES</div>
+    <h1>TURNO<br>DE CONTROLES</h1>
+    <p>Tienes un box, 14 pacientes y tres vidas. Cada uno llega con una pregunta del control que le toca:
+       hito del DSM, vacuna que hay que <b>indicar</b>, signo de alarma con su derivación, rango de edad, suplemento
+       o próximo control. Respondes contra reloj y el carné se sella.</p>
+    <ul>
+      <li>5 aciertos seguidos = <b>modo café</b>: puntaje doble y más tiempo.</li>
+      <li>Cada 5 pacientes entra un <b>caso complejo</b> que vale doble.</li>
+      <li>Lo que fallas vuelve a salir: el juego se sesga hacia tus huecos.</li>
+      <li>Un comodín por turno: la matrona te bota dos alternativas.</li>
+    </ul>
+    <button class="big" id="play">ABRIR EL BOX</button>
+    <button class="ghost" id="openFicha">Ver mi ficha por tema</button>
+  </div>
+
+  <!-- FIN -->
+  <div class="screen hidden" id="over">
+    <div class="eyebrow" id="overTag">FIN DEL TURNO</div>
+    <h1 id="overTitle">TURNO CERRADO</h1>
+    <p id="overText"></p>
+    <div id="overList"></div>
+    <button class="big" id="again">OTRO TURNO</button>
+    <button class="ghost" id="openFicha2">Ver mi ficha por tema</button>
+  </div>
+
+  <!-- FICHA -->
+  <div class="screen hidden" id="ficha">
+    <h2>Ficha por tema</h2>
+    <p>Porcentaje de acierto acumulado en este dispositivo. Los temas rojos aparecen más seguido.</p>
+    <div style="max-height:50vh;overflow:auto"><table id="fichaTbl"></table></div>
+    <button class="ghost" id="resetFicha">Borrar estadísticas</button>
+    <button class="big" id="closeFicha">VOLVER</button>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================================
+   FUENTE: apunte "Supervisión en salud" (controles díada a 4 meses) +
+   "Control sano hasta los 12 meses" (consulta nutricional 5 meses, controles
+   de los 6 y 8 meses — lactante menor y lactante medio)
+   ========================================================================== */
+
+const AGES = [
+  {id:'diada', label:'Control de díada',           chip:'Díada'},
+  {id:'m1',    label:'Control del mes',            chip:'1 mes'},
+  {id:'m2',    label:'Control 2° mes',             chip:'2 meses'},
+  {id:'m3',    label:'Control 3° mes',             chip:'3 meses'},
+  {id:'m4',    label:'Control 4° mes',             chip:'4 meses'},
+  {id:'m5',    label:'Consulta nutricional (5 m)', chip:'5 meses'},
+  {id:'m6',    label:'Control 6° mes',             chip:'6 meses'},
+  {id:'m8',    label:'Control 8° mes',             chip:'8 meses'},
+  {id:'m12',   label:'Control 12 meses',           chip:'12 meses'}
+];
+const ageLabel = id => AGES.find(a=>a.id===id).label;
+const ageChip  = id => AGES.find(a=>a.id===id).chip;
+
+/* ---------- HITOS DSM (hito → control) ---------- */
+const HITOS = [
+  ['diada','Reflejos arcaicos completos: moro, prensión palmar y plantar, marcha automática, búsqueda, succión, esgrimista, Garland, paracaídas anterior','Es el repertorio con que llega: en la díada se evocan todos.'],
+  ['diada','En prono solo levanta la mejilla; tono flexor asimétrico','Todavía no despega la cabeza: solo gira la mejilla.'],
+  ['diada','Puños cerrados con el pulgar incluido','Pulgar incluido es normal en la díada; a los 3 meses ya es signo de alarma.'],
+  ['diada','Llanto vigoroso y ruidos guturales','Lenguaje de la díada. El llanto débil es signo de alarma.'],
+  ['diada','Mirada fija en la madre si está cerca y de frente','Social de la díada: solo a corta distancia y de frente.'],
+  ['m1','Levanta la cabeza en prono apoyado en el tórax','Al mes se apoya en el tórax; a los 2 en antebrazos; a los 3 en codos.'],
+  ['m1','Mantiene la cabeza a nivel en suspensión ventral','Hito clásico del mes.'],
+  ['m1','Inicia la liberación de los pulgares','Al mes los libera de a poco; a los 2 meses ya está liberado.'],
+  ['m1','Sigue objetos con la mirada 90° y aún no distingue rostros','90° al mes, 180° a los 2 meses (ahí reconoce a los padres).'],
+  ['m1','Vocaliza','Vocaliza al mes, gorjea a los 2, ríe a los 3, ríe a carcajadas y balbucea a los 4.'],
+  ['m2','Aparece la sonrisa social','El hito estrella del 2° mes. Su ausencia es signo de alarma.'],
+  ['m2','Levanta la cabeza en prono apoyado en los antebrazos, aún sin control cefálico','2 meses: antebrazos y supino asimétrico; el control cefálico llega a los 3.'],
+  ['m2','Gorjea y mira a quien le habla','Lenguaje del 2° mes.'],
+  ['m2','Sigue objetos 180° y reconoce a los padres','2 meses: 180° y reconocimiento de rostros.'],
+  ['m3','Control cefálico logrado; en prono se apoya sobre los codos y en supino está simétrico','3 meses: codos, simetría y control cefálico.'],
+  ['m3','Desaparecen los reflejos arcaicos de prensión palmar, marcha automática y búsqueda','A los 3 meses se apagan; si persisten, sospecha.'],
+  ['m3','Abre la mano y afirma el objeto que se le pone en ella','Motricidad fina del 3° mes; a los 4 ya lo agarra y se lo lleva a la boca.'],
+  ['m3','Ríe e incorpora la "G"','3 meses. La carcajada y el balbuceo son de los 4.'],
+  ['m3','Se mira las manos y gira la cabeza siguiendo objetos','Base de la conversación madre-hijo.'],
+  ['m4','Levanta el tronco en prono e inicia el giro sin lograrlo aún','4 meses: tronco y giro incompleto.'],
+  ['m4','Mantiene la cabeza firme sentado con apoyo','Sedestación con apoyo: 4 meses.'],
+  ['m4','Agarra un objeto y se lo lleva a la boca','Motricidad fina del 4° mes.'],
+  ['m4','Ríe a carcajadas y balbucea','Lenguaje del 4° mes.'],
+  ['m6','En prono se mueve hacia adelante y atrás; en supino se lleva los pies a la boca','Motricidad gruesa de los 6-7 meses.'],
+  ['m6','Logra la sedestación sin apoyo por algunos segundos, o en posición de trípode','6-7 meses: sedestación breve o apoyada en sus manos.'],
+  ['m6','Toma objetos con la palma de la mano y los transfiere de una mano a la otra','Motricidad fina de los 6-7 meses; coordina mano-pie-boca a los 7 meses.'],
+  ['m6','Balbucea, vocaliza y reconoce su nombre','Comunicación de los 6-7 meses.'],
+  ['m6','Comienza a desconocer a los extraños','Aparece cerca de los 7 meses.'],
+  ['m8','Logra sedestación independiente y gatea o se arrastra','8-9 meses: el gateo es una fase opcional del desarrollo.'],
+  ['m8','Toma dos cubos con pinza intermedia y golpea objetos entre sí','Motricidad fina de los 8-9 meses.'],
+  ['m8','Dice disílabos inespecíficos ("da-da", "pa-pa"), hace adiós con la mano y aplaude','Comunicación de los 8-9 meses.'],
+  ['m8','Se muestra aprensivo con extraños y presenta ansiedad de separación','Socioemocional de los 8-9 meses; la ansiedad de separación franca llega cerca de los 9-10 meses.'],
+  ['m12','Se sostiene de pie sin apoyo; camina solo o sola, pero de forma inestable','Motricidad gruesa de los 12-14 meses.'],
+  ['m12','Pone objetos dentro de una taza, da vuelta varias hojas juntas de un libro y logra pinza madura','Motricidad fina de los 12-14 meses.'],
+  ['m12','Obedece órdenes con gestos (por ejemplo "pásame la pelota" señalándola), identifica personas e imita gestos con frecuencia','Comunicación de los 12-14 meses.'],
+  ['m12','Dice una a dos palabras con sentido, distintas de "mamá" y "papá"; jerigonza; muestra y pide cosas apuntando con el dedo índice','Lenguaje de los 12-14 meses.'],
+  ['m12','Imita el uso correcto de objetos (beber de un vaso, secarse el pelo, hablar por teléfono, barrer); su lenguaje comprensivo es más avanzado que el expresivo','Cognitivo de los 12-14 meses.'],
+  ['m12','Persiste la ansiedad de separación y disfruta más jugar solo que con otros niños','Socioemocional de los 12-14 meses.']
+];
+
+/* ---------- SIGNOS DE ALARMA DEL DSM ---------- */
+const ALARMAS_DSM = [
+  ['diada','Se mueve poco despierto, llanto débil, no reacciona al sonido ni a la luz'],
+  ['m1','No hay signos de alarma definidos para este control'],
+  ['m2','Sin sonrisa social, no fija la mirada, no se comunica con la madre'],
+  ['m3','Pulgar incluido, giro precoz, sin contacto visual, no afirma la cabeza'],
+  ['m4','Falta de vocalización'],
+  ['m6','Persistencia de reflejos arcaicos más allá de lo esperado (por ejemplo, Moro después de los 6 meses)'],
+  ['m8','Resultado de "riesgo" o "retraso" en el Test de Desarrollo Psicomotor'],
+  ['m12','Pauta breve de evaluación del DSM alterada']
+];
+
+/* ---------- RANGOS ---------- */
+const RANGOS = [
+  ['diada','hasta los 10 días','entre los 11 y los 28 días'],
+  ['m1','28 días a 1 mes 5 días','1 mes 6 días a 1 mes 20 días'],
+  ['m2','1 mes 21 días a 2 meses 10 días','2 meses 11 días a 2 meses 20 días'],
+  ['m3','2 meses 21 días a 3 meses 10 días','3 meses 11 días a 3 meses 20 días'],
+  ['m4','3 meses 21 días a 4 meses 10 días','4 meses 11 días a 4 meses 29 días'],
+  ['m6','5 meses 21 días a 6 meses 10 días','6 meses 11 días a 7 meses 20 días'],
+  ['m8','7 meses 21 días a 8 meses 10 días','8 meses 11 días a 11 meses 20 días'],
+  ['m12','11 meses 21 días a 12 meses 29 días','13 meses a 17 meses 20 días']
+];
+
+/* ---------- PRÓXIMO CONTROL ---------- */
+const PROXIMO = [
+  ['diada','Al mes'],
+  ['m1','A los 2 meses, con enfermería o médico'],
+  ['m2','A los 3 meses, con médico'],
+  ['m3','A los 4 meses, con médico o enfermera'],
+  ['m4','A los 5 meses, con médico o enfermera'],
+  ['m5','A los 6 meses'],
+  ['m6','A los 8 meses'],
+  ['m8','A los 12 meses'],
+  ['m12','A los 18 meses']
+];
+
+/* ---------- VACUNAS QUE SE INDICAN EN CADA CONTROL ---------- */
+const VACUNAS = [
+  ['diada','Verificar las del RN: BCG y VHB','En la díada no se indica hacia adelante: se verifica lo que ya recibió.'],
+  ['m1','Las PNI de los 2 meses (hexavalente, neumococo, Bexsero) y la no PNI rotavirus','En el control del mes se indican las del mes siguiente.'],
+  ['m2','La no PNI de los 3 meses: Menveo (meningocócica conjugada ACWY)','A los 2 meses lo único que se indica es Menveo del 3° mes.'],
+  ['m3','Las PNI de los 4 meses: 2ª dosis de hexavalente, neumocócica y Bexsero, más la 2ª de rotavirus (no PNI)','El control de los 3 meses indica el esquema de los 4.'],
+  ['m4','Las PNI de los 6 meses: 3ª hexavalente y neumocócica solo si es RNPT; además 2ª Menveo (5 meses) y 3ª Rotateq (6 meses), no PNI','Ojo: a los 6 meses la neumocócica solo va si fue prematuro.'],
+  ['m6','Las vacunas del PNI del esquema de los 6 meses según calendario vigente, y derivar a campañas de Influenza si corresponde','Se explican beneficios y efectos secundarios; el paracetamol post-vacuna es solo ante fiebre o dolor significativo, nunca profiláctico.'],
+  ['m8','Solo derivar a campañas de vacunación vigentes (Influenza); no hay dosis del PNI programada a los 8 meses','A los 8 meses no corresponde ninguna dosis nueva del PNI: se revisa el registro y se deriva a campañas estacionales.'],
+  ['m12','Las PNI de los 12 meses: 1ª dosis de SRP, refuerzo de neumocócica conjugada y dosis única de meningocócica conjugada tetravalente (ACWY); derivar a campañas de Influenza si corresponde','El refuerzo de hexavalente y de meningocócica B recién llegan a los 18 meses, no a los 12.']
+];
+
+/* ---------- DERIVACIONES ---------- */
+const DEST = ['Servicio de urgencias','Cirugía infantil','Neurología','Oftalmología urgente','ORL','Traumatología',
+  'Dermatología','Salud Mental / Chile Crece Contigo','Consulta de lactancia','Hematología','Odontología',
+  'Cardiología','Vacunatorio','Neurocirugía infantil','Se maneja en el box',
+  'Urgencia psiquiátrica acompañada','Sala de estimulación / neurólogo','Visita domiciliaria integral','Nutricionista'];
+
+const DERIV = [
+  ['Frenillo lingual corto','Cirugía infantil','Cirugía infantil o maxilofacial.'],
+  ['Fisura labiopalatina','Cirugía infantil','Es GES: derivación a cirugía infantil.'],
+  ['Criptorquidia, hernia inguinal, hipospadia o epispadia','Cirugía infantil','Derivación urgente al cirujano infantil.'],
+  ['Constipación con signos orgánicos (sospecha de Hirschsprung)','Servicio de urgencias','No es una derivación diferida: va al SU.'],
+  ['Dientes perinatales','Odontología','Derivar a odontólogo.'],
+  ['Más de 6 manchas café con leche, pecas axilares y antecedente familiar','Neurología','NF-1.'],
+  ['Más de 3 máculas hipocrómicas, angiofibromas y parches de Shagreen','Neurología','Esclerosis tuberosa.'],
+  ['Signos de parálisis cerebral o DSM alterado que persiste','Neurología','Alteración leve: observar y reevaluar. Grave o persistente: neurología.'],
+  ['Leucocoria o rojo pupilar alterado','Oftalmología urgente','GES en menores de 15 años. Urgente.'],
+  ['Estrabismo fijo','Oftalmología urgente','GES en menores de 9 años.'],
+  ['Sospecha de hipoacusia','ORL','Derivación urgente a ORL.'],
+  ['Ronquido','ORL','Derivación a ORL, sin urgencia.'],
+  ['Fosita pilonidal sin fondo visible o con pelos','Neurocirugía infantil','Sospecha de disrafia oculta, es GES.'],
+  ['Sospecha de cardiopatía congénita','Cardiología','GES.'],
+  ['Ortolani o Barlow positivo, o factores de riesgo de displasia','Traumatología','GES. La Rx de pelvis va a los 3 meses.'],
+  ['Hemangioma que duplicó su tamaño en un mes','Dermatología','También si >5% SC, periorificial, línea media, pliegues, pañal, sangrante o más de 5 lesiones.'],
+  ['Antecedente familiar de anemia falciforme o talasemia en familia migrante','Hematología','Riesgo de anemia: derivar a hematología.'],
+  ['Incremento ponderal menor a 20 g/día','Consulta de lactancia','Además suplementar con leche materna extraída o fórmula de inicio.'],
+  ['Lactancia materna exclusiva que no está resultando','Consulta de lactancia','Lo antes posible.'],
+  ['Ictericia que baja de las rodillas','Servicio de urgencias','Pedir bilirrubina total y directa; bajo rodillas o de inicio tardío con distensión, al SU.'],
+  ['Ictericia tardía con distensión abdominal en la díada','Servicio de urgencias','Hay que descartar atresia biliar de forma urgente.'],
+  ['Fiebre axilar sobre 37,5 °C en el lactante menor','Servicio de urgencias','Junto con decaimiento, rechazo alimentario, apneas de 20-30 s o sospecha de BRUE.'],
+  ['Apnea de 20 a 30 segundos referida por la madre','Servicio de urgencias','Bandera roja del control.'],
+  ['Madre con sintomatología depresiva','Salud Mental / Chile Crece Contigo','Aplicar escala de Edimburgo y derivar a Salud Mental.'],
+  ['Riesgo biopsicosocial y dificultad para cuidar','Salud Mental / Chile Crece Contigo','Chile Crece Contigo, Salud Mental y taller "Nadie es Perfecto".'],
+  ['Esquema de vacunas atrasado','Vacunatorio','Primero indagar la causa del atraso, después derivar.'],
+  ['Candidiasis oral','Se maneja en el box','Se trata, no se deriva.'],
+  ['Dermatitis atópica sin sobreinfección','Se maneja en el box','Baños cortos, aceite neutro, algodón, sin suavizante, evitar alérgenos.'],
+  ['Ideación suicida en la madre (puntaje distinto de 0 en la pregunta 10 de Edimburgo)','Urgencia psiquiátrica acompañada','Evaluación de riesgo vital inmediata; debe ser atendida de inmediato, acompañada por personal de salud, con activación de redes de apoyo.'],
+  ['Puntaje de Edimburgo de 10 o más','Salud Mental / Chile Crece Contigo','Derivación asistida a médico para confirmar o descartar depresión, con eventual ingreso GES.'],
+  ['Rezago en el Test de Desarrollo Psicomotor a los 8 meses','Sala de estimulación / neurólogo','Consejería de estimulación, derivación a sala de estimulación y reevaluación con el test en 2 meses.'],
+  ['Retraso en el Test de Desarrollo Psicomotor a los 8 meses','Sala de estimulación / neurólogo','Derivar a médico para evaluación y eventual derivación a neurólogo infantil; mantener estimulación mientras se define.'],
+  ['Malnutrición por exceso detectada en la consulta nutricional de los 5 meses','Nutricionista','Derivar en un plazo no mayor a 1 mes, con consejería en estilos de vida saludable.'],
+  ['Riesgo de accidentes con múltiples factores en la pauta de seguridad infantil (8 meses)','Visita domiciliaria integral','Cuando los riesgos son muchos o la familia no tiene claridad de cómo reducirlos.'],
+  ['Familia pregunta por el uso de andador','Se maneja en el box','Se desaconseja siempre: aumenta el riesgo de accidentes y retrasa el desarrollo motor grueso; se deja indicado por escrito.'],
+  ['Escala de detección de relación vincular alterada a los 12 meses, con conflicto que perturba el desarrollo del bebé','Salud Mental / Chile Crece Contigo','Consejería según patrón de apego; si el conflicto perturba el desarrollo integral, derivar a consulta de salud mental.'],
+  ['Fimosis sin ITU ni balanitis recurrente','Se maneja en el box','Es fisiológica; se desaconseja forzar el prepucio o realizar masajes.'],
+  ['Fimosis acompañada de ITU o balanitis recurrente','Cirugía infantil','Debe derivarse a cirujano o urólogo infantil; sin esas morbilidades se considera fisiológica.'],
+  ['Niño o niña eutrófico con dos o más factores de riesgo de malnutrición por exceso a los 12 meses','Se maneja en el box','Se deriva a taller grupal de hábitos saludables (1 sesión) y se hace un plan de trabajo consensuado; distinto de la malnutrición por exceso ya instalada, que sí va a nutricionista.']
+];
+
+/* ---------- PREGUNTAS FIJAS (indicaciones, suplementos, anticipación) ---------- */
+const FIJAS = [
+  {t:'suplementos', q:'Lactante de 2 meses, RN de término, con LME exclusiva. ¿Qué suplemento indicas hoy?',
+   o:['Vitamina D 400 UI/día','Vitamina D 400 UI/día + hierro 2 mg/kg/día','Zinc 3 mg/día','Ninguno mientras haya LME'],a:0,
+   e:'Vitamina D 400 UI/día a todos. El hierro en el RNT con LME parte en el control de los 4 meses (1-2 mg/kg/día).'},
+  {t:'suplementos', q:'Prematuro con LME. ¿Desde cuándo y con qué dosis va el zinc?',
+   o:['Zinc 3 mg/día desde los 2 meses hasta el año','Zinc 1 mg/kg/día desde el mes','Zinc 3 mg/día solo hasta los 6 meses','No se suplementa zinc'],a:0,
+   e:'RNPT con LME: zinc 3 mg/día desde los 2 meses al año. El hierro en RNPT o BPN es 2-3 mg/kg/día hasta el año.'},
+  {t:'suplementos', q:'RN de término, alimentado con LME, en el control del 4° mes. ¿Hierro?',
+   o:['1-2 mg/kg/día','2-3 mg/kg/día','No requiere','Solo si el hematocrito está bajo'],a:0,
+   e:'RNT con LME: 1-2 mg/kg/día. El RNPT o BPN lleva 2-3 mg/kg/día, salvo que tome más de 500 ml de fórmula fortificada.'},
+  {t:'sueño', q:'¿Cuántas horas duerme al día un lactante hasta los 3 meses, según el apunte?',
+   o:['14 a 17 horas','12 a 16 horas','10 a 12 horas','18 a 20 horas'],a:0,
+   e:'14-17 h hasta los 3 meses; desde los 4 meses y hasta los 11, 12-16 h. Cohabitación nocturna hasta el año.'},
+  {t:'sueño', q:'Lactante de 4 meses. ¿Cuántas horas de sueño esperas y hasta cuándo la cohabitación?',
+   o:['12-16 horas, cohabitación hasta el año','14-17 horas, cohabitación hasta los 6 meses','12-16 horas, cohabitación hasta los 3 años','10-12 horas, sin cohabitación'],a:0,
+   e:'A los 4 meses baja a 12-16 h (hasta los 11 meses). Cuna propia, de espalda, cohabitación hasta el año.'},
+  {t:'higiene', q:'Recién nacido con cordón aún adherido. ¿Cómo indicas el aseo?',
+   o:['Alcohol 70% en cada muda; baño de tina recién cuando caiga el cordón','Baño diario de tina desde el alta','Povidona yodada 2 veces al día','Solo agua, sin tocar el cordón'],a:0,
+   e:'Aseo del cordón con alcohol 70% en cada muda. Baño después de la caída, al menos 2 veces por semana. Limar uñas hasta el mes.'},
+  {t:'piel', q:'Madre pregunta si le puede poner bloqueador solar al lactante de 2 meses para salir.',
+   o:['No: no exponerlo al sol y no usar bloqueador a esta edad','Sí, factor 50 cada 2 horas','Sí, pero solo en la cara','Solo bloqueador físico desde el mes'],a:0,
+   e:'A esta edad la indicación es no exponer al sol y no poner bloqueador. Gorro, ropa de algodón, evitar el sobreabrigo.'},
+  {t:'pantallas', q:'¿Hasta qué edad se indica evitar completamente las pantallas?',
+   o:['Hasta los 2 años','Hasta el año','Hasta los 6 meses','No hay recomendación'],a:0,
+   e:'Sin pantallas hasta los 2 años. En cambio sí: cargarlo, hablarle, texturas, móviles con esferas de colores.'},
+  {t:'displasia', q:'¿En qué momento se indica la radiografía de pelvis y cuándo se revisa el resultado?',
+   o:['Se indica en el control de los 2 meses, para tomarla a los 3, y se revisa en el control del 3° mes','Se indica y se toma al mes','Se toma a los 6 meses','Solo si Ortolani es positivo'],a:0,
+   e:'Rx de caderas a los 3 meses, resultado revisado en ese control, y seguimiento de displasia en el control de los 4 meses.'},
+  {t:'lactancia', q:'La madre vuelve a trabajar a los 84 días. ¿Qué corresponde indicar?',
+   o:['Extracción, conservación y transporte de leche + consulta de lactancia y salas cuna del sector','Cambiar a fórmula de inicio','Suspender la lactancia nocturna','Nada especial, se maneja sola'],a:0,
+   e:'Se anticipa desde el control de los 2 meses: técnica de extracción, conservación y transporte, y redes del sector.'},
+  {t:'alimentacion', q:'¿Cada cuánto debe alimentarse el lactante menor según las indicaciones del control?',
+   o:['LME a libre demanda, sin dejar pasar más de 3 horas','Cada 4 horas estricto','Cada 2 horas de día y libre de noche','A libre demanda sin límite de horas'],a:0,
+   e:'LME a libre demanda, no más de 3 horas sin comer, y se desincentiva el chupete.'},
+  {t:'eliminacion', q:'¿Cuántos pañales al día esperas como marcador de ingesta adecuada?',
+   o:['6 a 8','3 a 4','10 a 12','No se cuentan'],a:0,
+   e:'6-8 pañales al día, y el incremento ponderal esperado en la díada es 20-30 g/día.'},
+  {t:'antropometria', q:'En el control de díada, ¿cuál es el incremento de peso diario esperado?',
+   o:['20-30 g/día','10-15 g/día','40-50 g/día','No se evalúa hasta el mes'],a:0,
+   e:'20-30 g/día. Bajo 20 g/día: consulta de lactancia, leche materna extraída o fórmula de inicio.'},
+  {t:'nutricion', q:'Lactante de 4 meses en riesgo de desnutrición (-1 DS) con curva estancada. ¿Qué haces primero?',
+   o:['Descartar morbilidad de la madre (depresión) o del lactante','Iniciar alimentación complementaria de inmediato','Derivar directo a nutrición infantil','Cambiar a fórmula de continuación'],a:0,
+   e:'En -1 DS se busca la causa: morbilidad materna (depresión) o del lactante. En -2 DS ya es desnutrición: diagnóstico y tratamiento.'},
+  {t:'anticipacion', q:'¿Cuál de estos se anticipa como proceso fisiológico normal y no como patología?',
+   o:['Disquecia del lactante','Constipación con distensión y retraso de meconio','Vómitos con deshidratación','Apneas de 25 segundos'],a:0,
+   e:'Disquecia, hipo, cólicos, ERGE fisiológico y crisis de lactancia se anticipan como normales; siempre descartando signos de alarma.'},
+  {t:'erge', q:'Lactante de 3 semanas con regurgitaciones. ¿Cuándo lo derivas y a dónde?',
+   o:['A médico si sospecho reflujo patológico; a urgencias si sospecho otro diagnóstico','Siempre a gastroenterología','Siempre a urgencias','Nunca se deriva'],a:0,
+   e:'ERGE: a médico si el reflujo impresiona patológico (inicio antes de las 2 semanas), a urgencias si hay sospecha de otro diagnóstico.'},
+  {t:'violencia', q:'Encuentras equimosis de distintas edades en zonas cubiertas por ropa y consulta tardía.',
+   o:['Si el abuso es constitutivo de delito, realizar la denuncia','Citar en una semana para observar','Solo registrar en la ficha','Derivar a Chile Crece Contigo y esperar'],a:0,
+   e:'Señales de violencia: lesiones en sitios inhabituales, laceraciones rectales o genitales, fracturas, consulta tardía. Si es constitutivo de delito, se denuncia.'},
+  {t:'prevencion', q:'¿Cuál de estas es indicación de prevención de accidentes del control?',
+   o:['Silla de auto, no dejarlo solo en altura ni en el baño, sin collares, no exponer a humo','Andador desde los 4 meses','Almohada antirreflujo en la cuna','Dormir en decúbito prono para el reflujo'],a:0,
+   e:'Sueño: cuna, de espalda, sin almohadas y con los brazos descubiertos. Prono solo despierto y supervisado.'},
+  {t:'actividad', q:'¿Cuánto tiempo en prono supervisado se indica desde el control del mes?',
+   o:['30 minutos, varias veces al día, siempre supervisado','5 minutos al día','Solo después de los 6 meses','No se recomienda el prono'],a:0,
+   e:'Prono supervisado varias veces al día; a los 4 meses se suma prono, supino y de lado, con objetos a su alcance y espejo.'},
+  {t:'oral', q:'Higiene bucal en un lactante de 2 meses sin dientes.',
+   o:['Limpiar 1 vez al día con gasa húmeda o dedal de silicona sobre encías, paladar y lengua','No corresponde hasta que salgan los dientes','Cepillo suave 2 veces al día','Enjuagues con agua después de cada mamada'],a:0,
+   e:'Una vez al día con gasa limpia húmeda o dedal de silicona, mientras no hayan salido los dientes.'},
+  {t:'bcg', q:'¿Hasta qué control se evalúa la reacción de la BCG en el examen de piel?',
+   o:['Hasta el control del 4° mes','Hasta el mes','Solo en la díada','Hasta el año'],a:0,
+   e:'La reacción de BCG se busca hasta el control del 4° mes. La ictericia se evalúa hasta el 2° mes.'},
+  {t:'ictericia', q:'¿Hasta qué control el apunte espera evaluar ictericia en el examen de piel?',
+   o:['Hasta el control del 2° mes','Solo en la díada','Hasta el 4° mes','Hasta el año'],a:0,
+   e:'Ictericia hasta el 2° mes. Si aparece bajo las rodillas o es de inicio tardío con distensión, va al SU.'},
+  {t:'alimentacion', q:'¿Antes de qué edad no se debe introducir alimentación complementaria no láctea?',
+   o:['Antes de los 6 meses (180 días)','Antes de los 4 meses','Antes de los 8 meses','No hay una edad mínima'],a:0,
+   e:'No antes de los 6 meses, considerando la madurez del lactante: sostén cefálico y de tronco, ausencia de reflejo de extrusión, interés por la comida.'},
+  {t:'alimentacion', q:'Lactante de 8 meses en control. ¿Qué se incorpora en este control según las indicaciones?',
+   o:['Cena (18-19 h), legumbres y pescado','Solo papillas de fruta','Sal para dar sabor a las papillas','Leche de vaca entera como reemplazo de la leche materna'],a:0,
+   e:'A los 8 meses se incorpora la cena; legumbres desde los 7-8 meses y pescado desde los 6-7. Cero sal y cero azúcar durante los primeros 1000 días de vida.'},
+  {t:'piel', q:'Lactante de 6 meses. ¿Qué corresponde indicar respecto al sol, a diferencia de los controles anteriores?',
+   o:['Recién desde ahora se indica bloqueador solar diario, hipoalergénico y con FPS sobre 25','Seguir sin bloqueador, igual que antes','Bloqueador solo cuando va a la playa','Bloqueador únicamente en la cara'],a:0,
+   e:'Hasta los 4 meses la indicación era no exponer al sol y no usar bloqueador; recién desde los 6 meses se indica bloqueador diario en zonas fotoexpuestas.'},
+  {t:'prevencion', q:'Los padres de un lactante de 8 meses preguntan por el andador. ¿Qué les dices?',
+   o:['No usarlo: aumenta el riesgo de accidentes y retrasa el desarrollo motor grueso','Es seguro después de los 6 meses','Solo con supervisión estricta de un adulto','Ayuda a que camine antes'],a:0,
+   e:'El andador está desaconsejado en todos los controles; se deja indicado por escrito su no uso en el Cuaderno de Salud del Niño y la Niña.'},
+  {t:'higiene', q:'¿Cómo es la indicación de baño para el lactante de 6 a 8 meses?',
+   o:['Baño diario o día por medio; jabón y champú son opcionales, día por medio si se usan','Baño solo 2 veces por semana','Nunca se debe usar jabón a esta edad','Baño obligatorio con champú todos los días'],a:0,
+   e:'Baño diario o día por medio; puede usarse poco jabón (opcional) y champú día por medio aunque el baño sea diario.'},
+  {t:'instrumentos', q:'¿En qué controles se aplica la escala de Edimburgo, y cuál se usa a los 8 meses?',
+   o:['Edimburgo a los 2 y 6 meses; a los 8 meses el instrumento es el Test de Desarrollo Psicomotor','Edimburgo en todos los controles hasta el año','Edimburgo solo en la díada','A los 8 meses también se repite Edimburgo'],a:0,
+   e:'Edimburgo se aplica a los 2 y 6 meses. A los 8 meses el instrumento es el Test de evaluación del Desarrollo Psicomotor, junto a la pauta de seguridad infantil.'},
+  {t:'denticion', q:'¿A qué edad erupcionan en promedio los primeros dientes (incisivos)?',
+   o:['7 meses','3 meses','12 meses','18 meses'],a:0,
+   e:'En promedio a los 7 meses. Para las molestias de la dentición se recomiendan mordedores con gel frío, no analgésicos de rutina.'},
+  {t:'sueño', q:'La familia de un lactante de 7 meses consulta porque despierta llorando varias veces en la noche. ¿Qué le explicas?',
+   o:['Es esperable a esta edad; los despertares nocturnos llegan a un peak cercano a los 8 meses por inmadurez del ciclo de sueño','Es anormal y se deriva de inmediato a neurología','Hay que suspender la lactancia nocturna ya','Se debe dejar llorar sin intervenir nunca'],a:0,
+   e:'Los despertares nocturnos son esperables entre los 4 y 11 meses, con peak cerca de los 8; se recomiendan rutinas predecibles y acompañar hasta que concilie el sueño.'},
+  {t:'reflejos', q:'¿Hasta qué edad puede persistir de forma normal el reflejo de Moro?',
+   o:['Hasta los 6 meses','Hasta el mes','Hasta los 3 meses','Hasta el año'],a:0,
+   e:'El Moro puede persistir en forma normal hasta los 6 meses; su persistencia posterior amerita evaluación neurológica.'},
+  {t:'profesional', q:'¿Qué profesional realiza la consulta nutricional de los 5 meses?',
+   o:['Nutricionista','Matrona','Médico','Enfermera'],a:0,
+   e:'La consulta nutricional de los 5 meses la realiza un(a) nutricionista. El control de los 3 meses lo realiza médico; los de los 2, 4, 6 y 8 meses, enfermera o médico.'},
+  {t:'vacunas', q:'En la consulta nutricional de los 5 meses, ¿qué corresponde hacer respecto a vacunas?',
+   o:['Revisar el registro de inmunizaciones, sin indicar vacunas nuevas','Indicar el esquema completo de los 6 meses','Aplicar un refuerzo de BCG','No se revisa nada relacionado a vacunas'],a:0,
+   e:'La nutricionista revisa el registro de inmunizaciones y el retiro de alimentos del PNAC, pero no indica vacunas nuevas: eso corresponde al control de los 6 meses.'},
+  {t:'rangos', q:'¿Cuál es el período correspondiente a la consulta nutricional del lactante menor?',
+   o:['5 meses a 5 meses 29 días','4 meses a 4 meses 29 días','5 meses a 6 meses 15 días','6 meses a 6 meses 29 días'],a:0,
+   e:'La consulta nutricional tiene un único rango: 5 meses a 5 meses 29 días, sin distinción entre ideal y tardío.'},
+  {t:'vacunas', q:'Recién nacido en control de díada. Según el PNI vigente, ¿a quién corresponde el anticuerpo monoclonal contra el VRS (nirsevimab)?',
+   o:['A los nacidos desde el 1 de octubre de 2025, en su primera temporada de alta circulación de VRS, más lactantes de riesgo en temporadas siguientes','A todos los recién nacidos sin excepción, todo el año','Solo a los prematuros extremos, sin importar la fecha de nacimiento','No está incluido en el PNI, es de compra particular'],a:0,
+   e:'Es la incorporación más reciente del PNI: cohorte desde el 1 de octubre de 2025, para su primera temporada de alta circulación de VRS, y lactantes de riesgo en las temporadas siguientes.'},
+  {t:'alimentacion', q:'Lactante de 12 meses. ¿Cuánta leche materna o fórmula se indica al día, y en qué recipiente?',
+   o:['500 a 750 ml diarios, en taza','1 a 1,5 litros diarios, en mamadera','200 ml diarios, en vasito entrenador','No se debe dar más leche a esta edad'],a:0,
+   e:'500-750 ml al día, en taza; además dos comidas diarias con comida de la casa y postre de fruta, sin sal ni azúcar agregada.'},
+  {t:'salud_bucal', q:'¿Cómo se indica el cepillado dental a los 12 meses?',
+   o:['Cepillo pequeño de cerdas suaves, 2 veces al día, guiado por un adulto y sin pasta dental','Cepillo eléctrico desde el año','Pasta dental fluorada en cantidad de un garbanzo','No se cepilla hasta los 2 años'],a:0,
+   e:'Cepillo pequeño de cerdas suaves, dos veces al día, sin pasta dental a esta edad; además se inicia un plan de retiro respetuoso y gradual de chupete y mamadera.'},
+  {t:'piel', q:'¿Cuál es el factor de protección solar (FPS) mínimo indicado a los 12 meses, y cómo cambia respecto al de los 6 meses?',
+   o:['FPS sobre 30 (a los 6 meses era sobre 25)','FPS sobre 15, igual que a los 6 meses','FPS sobre 50 desde el nacimiento','No se indica bloqueador hasta los 2 años'],a:0,
+   e:'A los 6 meses se indica FPS mayor a 25; a los 12-18 meses sube a FPS mayor a 30, aplicado 20 minutos antes de la exposición y repetido cada 2 horas.'},
+  {t:'prevencion', q:'¿Cómo cambia la orientación de la silla de auto en el control de los 12 meses respecto a los controles anteriores?',
+   o:['Ahora se indica mirando hacia adelante (antes era mirando hacia atrás)','Se mantiene igual, siempre mirando hacia atrás','Ya no se requiere silla de auto','Debe ir mirando hacia los lados'],a:0,
+   e:'Hasta antes del año se indicaba silla de auto en segunda fila mirando hacia atrás; en el control de los 12 meses el apunte indica usarla mirando hacia adelante.'},
+  {t:'habitos', q:'A los 12 meses, ¿qué corresponde indicar respecto al uso de chupete y mamadera?',
+   o:['Iniciar un plan de retiro respetuoso y gradual','Mantenerlos sin restricción hasta los 3 años','Retirarlos de un día para otro','Solo retirar el chupete; la mamadera se mantiene indefinidamente'],a:0,
+   e:'A esta edad debieran dejar de usarse; se recomienda un plan de retiro respetuoso y gradual, no abrupto.'},
+  {t:'crianza', q:'Los padres de un lactante de 12-14 meses preguntan si las palmadas sirven para poner límites. ¿Qué les respondes?',
+   o:['El castigo físico no logra las conductas esperadas, solo frena momentáneamente la conducta, genera efectos emocionales negativos y deteriora el vínculo','Sí, es efectivo y se recomienda a esta edad','Solo se recomienda si la palmada es suave','Es la única forma de poner límites antes de los 2 años'],a:0,
+   e:'El castigo físico no genera las conductas esperadas: solo frena momentáneamente la conducta, produce frustración y temor, y deteriora el vínculo, modelando una forma violenta de resolver problemas.'},
+  {t:'anemia', q:'Lactante de 12 meses sin suplementación de hierro y con ingesta de fórmula fortificada menor a 1 litro al día. ¿Qué corresponde hacer?',
+   o:['Solicitar hemograma o hematocrito y hemoglobina; si se confirma anemia, iniciar tratamiento con hierro','No corresponde ningún examen a esta edad','Derivar directo a hematología sin exámenes previos','Solo reforzar la alimentación con carnes rojas, sin exámenes'],a:0,
+   e:'A los 12 meses se solicita hemograma o hematocrito/hemoglobina en niños con factores de riesgo de anemia: sin suplementación, fórmula fortificada <1 L/día, prematuros, bajo peso de nacimiento o enfermedad crónica.'}
+];
+
+/* ---------- CASOS COMPLEJOS ---------- */
+const CASOS = [
+  {q:'RN de 12 días que ingresa tardíamente al control de díada. Peso con incremento de 15 g/día, ictericia hasta los muslos, madre llorosa que refiere que no se siente capaz de cuidarlo.',
+   o:['Consulta de lactancia, evaluar ictericia con BT y directa, Edimburgo y derivación a Salud Mental, reforzar adherencia',
+      'Solo reforzar técnica de lactancia y citar al mes',
+      'Derivar al SU por la ictericia y postergar lo demás',
+      'Indicar fórmula de inicio y controlar en 48 horas'],a:0,
+   e:'Ingreso tardío se refuerza adherencia; <20 g/día es consulta de lactancia; ictericia hasta muslos obliga a estudiarla; y la sintomatología materna va con Edimburgo + Salud Mental.'},
+  {q:'Lactante de 2 meses 5 días. No sonríe, no fija la mirada y no se comunica con la madre. El resto del examen es normal.',
+   o:['Es signo de alarma del DSM del 2° mes: reevaluar y derivar según severidad, con taller de DSM para menores de 1 año',
+      'Es normal, la sonrisa social aparece a los 4 meses',
+      'Derivar de inmediato a oftalmología',
+      'Repetir el control en 3 meses'],a:0,
+   e:'Sonrisa social ausente a los 2 meses es signo de alarma. Alteración leve: observar y reevaluar al control siguiente; persistente o grave: neurología.'},
+  {q:'Lactante de 3 meses 15 días, control tardío. Persiste el pulgar incluido, no afirma la cabeza y hace giro precoz.',
+   o:['Son signos de alarma del 3° mes: derivar a neurología y a taller de desarrollo psicomotor',
+      'Es un desarrollo adelantado, se felicita a los padres',
+      'Corresponde al desarrollo normal de los 3 meses',
+      'Solo indicar más tiempo de prono y controlar al mes'],a:0,
+   e:'El giro precoz y el pulgar incluido a los 3 meses hablan de hipertonía. A esa edad ya debería haber control cefálico y mano abierta.'},
+  {q:'Control del mes. La madre pregunta qué vacunas le tocan y cuándo tiene que volver.',
+   o:['Se indican las de los 2 meses (hexavalente, neumococo, Bexsero y rotavirus no PNI) y el control es a los 2 meses con enfermería o médico',
+      'Se indican las de los 4 meses y el control es a los 3 meses con médico',
+      'Solo BCG y VHB, control a los 3 meses',
+      'Menveo, y control a los 2 meses con médico'],a:0,
+   e:'Cada control indica el esquema del mes siguiente. Menveo aparece recién en el control de los 2 meses (para los 3).'},
+  {q:'Lactante de 4 meses, prematuro, con LME. Además tiene una fosita pilonidal con pelos y un hemangioma que duplicó su tamaño este mes.',
+   o:['Zinc y hierro, derivar a neurocirugía infantil por sospecha de disrafia oculta y a dermatología por el hemangioma',
+      'Solo vitamina D, y controlar ambas lesiones en el próximo control',
+      'Derivar todo al SU',
+      'Derivar a traumatología y a cirugía infantil'],a:0,
+   e:'RNPT con LME: zinc 3 mg/día y hierro 2-3 mg/kg/día. Fosita con pelos = disrafia oculta (GES, neurocirugía). Hemangioma que duplica en un mes = dermatología.'},
+  {q:'Lactante de 2 meses con constipación, distensión abdominal y mal incremento ponderal.',
+   o:['Sospecha de enfermedad de Hirschsprung: derivar al servicio de urgencias',
+      'Disquecia del lactante: tranquilizar y anticipar',
+      'Derivar a gastroenterología en 3 meses',
+      'Indicar supositorio de glicerina y controlar'],a:0,
+   e:'Constipación con signos orgánicos va al SU. La disquecia, en cambio, se anticipa como normal si no hay signos de alarma.'},
+  {q:'Control de los 6 meses. La madre puntúa 11 en la escala de Edimburgo, incluyendo un puntaje de 2 en la pregunta sobre ideación de hacerse daño.',
+   o:['Evaluación inmediata del riesgo vital; asegurar atención de urgencia acompañada y activar redes de apoyo',
+      'Derivar a control con médico en un mes',
+      'Repetir la escala en 15 días y esperar',
+      'Indicar solamente participar en el taller Nadie es Perfecto'],a:0,
+   e:'Cualquier puntaje distinto de 0 en la pregunta 10 de Edimburgo (ideación suicida) exige evaluación de riesgo vital inmediata, sin importar el puntaje total de la escala.'},
+  {q:'Control de los 8 meses. El Test de Desarrollo Psicomotor resulta en la categoría "retraso". Los padres están angustiados.',
+   o:['Derivar a médico para evaluación y eventual derivación a neurólogo, mantener estimulación mientras se define, y reevaluar con el test en 2 meses',
+      'Tranquilizar a la familia: es esperable a esta edad y no requiere ninguna acción',
+      'Derivar directo a neurología, sin necesidad de reevaluación posterior',
+      'Suspender la asistencia a jardín infantil hasta nueva evaluación'],a:0,
+   e:'"Retraso" es la categoría más severa del test: se deriva a médico y probable neurólogo, se mantiene la estimulación y se reevalúa en 2 meses.'},
+  {q:'Consulta nutricional de los 5 meses. El lactante nació macrosómico (4,2 kg), la madre tuvo diabetes gestacional y el padre es obeso.',
+   o:['Es un lactante en riesgo de malnutrición por exceso: reforzar la LME, no adelantar la alimentación complementaria antes de los 6 meses y hacer seguimiento',
+      'Iniciar de inmediato una dieta hipocalórica',
+      'No corresponde ninguna intervención antes del año de vida',
+      'Suspender la lactancia materna por el riesgo de obesidad'],a:0,
+   e:'RN macrosómico, diabetes gestacional y obesidad parental son factores de riesgo de malnutrición por exceso; la LME prolongada es un factor protector.'},
+  {q:'Control de los 12 meses. La Pauta Breve de evaluación del DSM sale alterada. Además, la familia relata que el niño no obedece órdenes con gestos ni identifica personas.',
+   o:['Derivar a evaluación con Test del DSM dentro de los siguientes 15 días; si el Test resulta alterado, seguir el mismo flujograma descrito para los 18 meses según el resultado',
+      'Esperar sin ninguna acción hasta el control de los 18 meses',
+      'Derivar directo a neurólogo sin aplicar el Test del DSM',
+      'Repetir la Pauta Breve en el mismo control, sin derivar'],a:0,
+   e:'Pauta Breve alterada a los 12 meses: se deriva a evaluación con Test del DSM en un plazo máximo de 15 días; el resultado de ese test se maneja con el mismo flujograma que a los 18 meses (rezago, riesgo o retraso).'}
+];
+
+/* ==========================================================================
+   MOTOR
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random()*n);
+const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
+
+const stats = JSON.parse(localStorage.getItem('cns_stats')||'{}');
+let best = +(localStorage.getItem('cns_best')||0);
+const TOTAL = 14;
+let score=0, lives=3, streak=0, mult=1, idx=0, wildcard=1, answered=false;
+let timeLeft=0, timeMax=12, timer=null, current=null, missed=[];
+
+/* ---- generadores de preguntas ---- */
+function qHito(){
+  const [age,txt,e] = HITOS[rnd(HITOS.length)];
+  return {tag:'DSM · hitos', age, showAge:false, q:'¿A qué control corresponde este hallazgo del desarrollo?', sub:'"'+txt+'"',
+    opts:AGES.map(a=>a.label), a:AGES.findIndex(a=>a.id===age), e};
+}
+function qAlarma(){
+  const [age,txt] = ALARMAS_DSM[rnd(ALARMAS_DSM.length)];
+  return {tag:'DSM · alarmas', age, showAge:false, q:'¿De qué control es este signo de alarma del DSM?', sub:'"'+txt+'"',
+    opts:AGES.map(a=>a.label), a:AGES.findIndex(a=>a.id===age),
+    e:'Signo de alarma del '+ageLabel(age)+'.'};
+}
+function qRango(){
+  const [age,ideal,tardio] = RANGOS[rnd(RANGOS.length)];
+  const usaIdeal = Math.random()<0.5;
+  const correct = usaIdeal?ideal:tardio;
+  const pool = shuffle(RANGOS.filter(r=>r[0]!==age)).slice(0,3).map(r=>usaIdeal?r[1]:r[2]);
+  const opts = shuffle([correct,...pool]);
+  return {tag:'Rangos de edad', age, showAge:true, q:'¿Cuál es el rango '+(usaIdeal?'IDEAL':'TARDÍO')+' del '+ageLabel(age)+'?',
+    sub:'', opts, a:opts.indexOf(correct),
+    e:ageLabel(age)+': ideal '+ideal+', tardío '+tardio+'.'};
+}
+function qProximo(){
+  const [age,txt] = PROXIMO[rnd(PROXIMO.length)];
+  const pool = shuffle(PROXIMO.filter(p=>p[0]!==age)).slice(0,3).map(p=>p[1]);
+  const opts = shuffle([txt,...pool]);
+  return {tag:'Próximo control', age, showAge:true, q:'Terminas el '+ageLabel(age)+'. ¿Cuándo es el próximo y con quién?',
+    sub:'', opts, a:opts.indexOf(txt), e:'Después del '+ageLabel(age)+': '+txt+'.'};
+}
+function qVacuna(){
+  const [age,txt,e] = VACUNAS[rnd(VACUNAS.length)];
+  const pool = shuffle(VACUNAS.filter(v=>v[0]!==age)).slice(0,3).map(v=>v[1]);
+  const opts = shuffle([txt,...pool]);
+  return {tag:'Vacunas', age, showAge:true, q:'En el '+ageLabel(age)+', ¿qué vacunas corresponde indicar?', sub:'',
+    opts, a:opts.indexOf(txt), e};
+}
+function qDeriv(){
+  const [hallazgo,destino,e] = DERIV[rnd(DERIV.length)];
+  const pool = shuffle(DEST.filter(d=>d!==destino)).slice(0,3);
+  const opts = shuffle([destino,...pool]);
+  const age = AGES[rnd(AGES.length)].id;
+  return {tag:'Derivaciones', age, showAge:false, q:'Hallazgo en el control: '+hallazgo.charAt(0).toLowerCase()+hallazgo.slice(1)+'. ¿Qué haces?',
+    sub:'', opts, a:opts.indexOf(destino), e};
+}
+function qFija(){
+  const f = FIJAS[rnd(FIJAS.length)];
+  const pairs = f.o.map((t,i)=>({t,ok:i===f.a}));
+  const sh = shuffle(pairs);
+  return {tag:f.t, age:AGES[rnd(AGES.length)].id, showAge:false, q:f.q, sub:'', opts:sh.map(p=>p.t),
+    a:sh.findIndex(p=>p.ok), e:f.e};
+}
+function qCaso(){
+  const c = CASOS[rnd(CASOS.length)];
+  const pairs = c.o.map((t,i)=>({t,ok:i===c.a}));
+  const sh = shuffle(pairs);
+  return {tag:'Caso complejo', boss:true, age:AGES[rnd(AGES.length)].id, showAge:false, q:c.q, sub:'',
+    opts:sh.map(p=>p.t), a:sh.findIndex(p=>p.ok), e:c.e};
+}
+
+const GENS = [
+  {f:qHito,   tag:'DSM · hitos'},
+  {f:qAlarma, tag:'DSM · alarmas'},
+  {f:qRango,  tag:'Rangos de edad'},
+  {f:qProximo,tag:'Próximo control'},
+  {f:qVacuna, tag:'Vacunas'},
+  {f:qDeriv,  tag:'Derivaciones'},
+  {f:qFija,   tag:'Indicaciones'}
+];
+
+function pickQuestion(){
+  if(idx>0 && idx%5===0) return qCaso();
+  // peso adaptativo: los temas con más fallos salen más
+  const weighted=[];
+  GENS.forEach(g=>{
+    const s = stats[g.tag]||{ok:0,bad:0};
+    const w = 1 + Math.min(4, s.bad - s.ok*0.25);
+    for(let i=0;i<Math.max(1,Math.round(w));i++) weighted.push(g);
+  });
+  return weighted[rnd(weighted.length)].f();
+}
+
+/* ---- sprites del lactante (26x26, cambian con la edad) ---- */
+const bctx = $('baby').getContext('2d');
+function drawBaby(ageId){
+  const c = bctx; c.clearRect(0,0,26,26);
+  const oculto = ageId==='?';
+  const skin= oculto?'#C9CFD4':'#F2C9A0', shade= oculto?'#AEB7BD':'#D9A87C';
+  const cloth= oculto?'#8FA0AA':{diada:'#8FD6E8',m1:'#B7E3A2',m2:'#F5C86B',m3:'#E9A0C0',m4:'#A9A5F0',
+    m5:'#FFB6B9',m6:'#6EC6FF',m8:'#FFDA77',m12:'#C9A0FF'}[ageId];
+  const px=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h)};
+  // cuerpo
+  px(7,14,12,9,cloth); px(6,17,2,5,cloth); px(18,17,2,5,cloth);
+  // cabeza
+  px(7,4,12,11,skin); px(6,7,1,5,skin); px(19,7,1,5,skin);
+  px(7,4,12,2,shade);
+  // ojos
+  px(10,9,2,2,'#2A3B45'); px(15,9,2,2,'#2A3B45');
+  // silueta anónima: la edad es justamente lo que hay que deducir
+  if(oculto){
+    px(11,9,4,1,'#2A3B45'); px(14,10,1,1,'#2A3B45'); px(13,11,1,1,'#2A3B45');
+    px(13,13,1,1,'#2A3B45'); px(11,9,1,1,'#2A3B45');
+    return;
+  }
+  // boca: sonrisa desde los 2 meses
+  if(ageId==='diada'||ageId==='m1'){ px(13,12,2,1,'#B9705C'); }
+  else if(ageId==='m2'){ px(11,12,5,1,'#B9705C'); px(11,11,1,1,'#B9705C'); px(15,11,1,1,'#B9705C'); }
+  else { px(11,12,5,2,'#B9705C'); px(12,13,3,1,'#FFF'); }
+  // detalle por edad
+  if(ageId==='diada'){ px(12,19,2,2,'#C86A5A'); }          // muñón
+  if(ageId==='m3'){ px(9,22,3,2,skin); }                    // manos a la boca
+  if(ageId==='m4'){ px(19,13,4,4,'#5FD3B0'); }              // objeto que agarra
+}
+
+/* ---- audio ---- */
+let AC=null;
+function beep(f,d,type,v){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.value=f;g.gain.value=v||.05;
+  o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+  o.stop(AC.currentTime+d);}catch(e){}}
+
+/* ---- render ---- */
+function renderQueue(){
+  const q=$('queue'); q.innerHTML='';
+  for(let i=0;i<TOTAL;i++){
+    const d=document.createElement('div');
+    const done=i<idx, cur=i===idx;
+    d.style.cssText='width:8px;height:'+(cur?'18px':'10px')+';border-radius:3px;background:'+
+      (done?'#3FD69B':cur?'#FFD166':'#223A46');
+    q.appendChild(d);
+  }
+}
+function showQuestion(){
+  togglePausa(false);
+  answered=false; current=pickQuestion();
+  $('explain').classList.add('hidden'); $('next').classList.add('hidden');
+  $('sello').className=''; $('sello').style.opacity=0;
+  $('matrona').disabled = wildcard<=0;
+  $('matrona').classList.remove('hidden');
+  const revela = current.showAge && !current.boss;
+  drawBaby(revela ? current.age : '?');
+  $('ptname').textContent = current.boss ? 'PACIENTE COMPLEJO'
+    : revela ? ageChip(current.age) : 'EDAD: ?';
+  $('pttag').textContent = current.boss ? 'vale doble · sin comodín' : current.tag;
+  $('qtext').textContent = current.q;
+  $('qsub').textContent = current.sub||'';
+  const box=$('opts'); box.innerHTML='';
+  current.opts.forEach((t,i)=>{
+    const b=document.createElement('button'); b.className='opt'; b.textContent=t;
+    b.onclick=()=>answer(i,b); box.appendChild(b);
+  });
+  renderQueue(); hud();
+  timeMax = Math.max(7, 13 - Math.floor(idx/3)) + (mult>1?3:0);
+  if(current.boss) timeMax += 8;
+  timeLeft = timeMax;
+  clearInterval(timer);
+  timer = setInterval(tick, 100);
+}
+function tick(){
+  timeLeft -= 0.1;
+  $('timeBar').style.width = Math.max(0,timeLeft/timeMax*100)+'%';
+  $('timeBar').style.background = timeLeft<3 ? '#FF5470' : 'linear-gradient(90deg,#3FD69B,#FFD166)';
+  if(timeLeft<=0){ clearInterval(timer); timeout(); }
+}
+function stamp(txt,color){
+  const s=$('sello'); s.textContent=txt; s.style.color=color; s.style.borderColor=color;
+  s.className=''; void s.offsetWidth; s.className='stamping';
+}
+function answer(i,btn){
+  if(answered) return; answered=true; clearInterval(timer);
+  const ok = i===current.a;
+  const tag = current.tag;
+  const st = stats[tag] = stats[tag]||{ok:0,bad:0};
+  [...$('opts').children].forEach(c=>c.disabled=true);
+  if(ok){
+    st.ok++; streak++; mult = streak>=5 ? 2 : 1;
+    const pts = (current.boss?200:100) * mult + Math.round(timeLeft*5);
+    score += pts;
+    btn.classList.add('ok');
+    stamp('CONTROL AL DÍA','#1FA97A'); beep(660,.1,'square',.04);
+    if(streak===5) setTimeout(()=>beep(880,.18,'triangle',.05),160);
+  }else{
+    st.bad++; streak=0; mult=1; lives--;
+    btn.classList.add('no');
+    $('opts').children[current.a].classList.add('ok');
+    stamp('DERIVACIÓN ERRADA','#D6455F'); beep(130,.25,'sawtooth',.05);
+    missed.push({tag, q:current.q, right:current.opts[current.a]});
+  }
+  localStorage.setItem('cns_stats', JSON.stringify(stats));
+  revelarEdad();
+  $('explain').textContent = current.e; $('explain').classList.remove('hidden');
+  $('matrona').classList.add('hidden');
+  $('next').classList.remove('hidden');
+  $('next').textContent = (idx+1>=TOTAL || lives<=0) ? 'CERRAR TURNO' : 'SIGUIENTE PACIENTE';
+  hud();
+}
+function revelarEdad(){
+  // los tipos con edad oculta la muestran recién al cerrar el caso
+  if(current.boss || current.showAge) return;
+  if(current.tag==='DSM · hitos' || current.tag==='DSM · alarmas'){
+    drawBaby(current.age);
+    $('ptname').textContent = ageChip(current.age);
+  }
+}
+function timeout(){
+  if(answered) return; answered=true;
+  const st = stats[current.tag] = stats[current.tag]||{ok:0,bad:0}; st.bad++;
+  localStorage.setItem('cns_stats', JSON.stringify(stats));
+  streak=0; mult=1; lives--;
+  [...$('opts').children].forEach(c=>c.disabled=true);
+  $('opts').children[current.a].classList.add('ok');
+  stamp('SE FUE SIN RESPUESTA','#D6455F'); beep(110,.3,'sawtooth',.05);
+  missed.push({tag:current.tag, q:current.q, right:current.opts[current.a]});
+  revelarEdad();
+  $('explain').textContent = current.e; $('explain').classList.remove('hidden');
+  $('matrona').classList.add('hidden');
+  $('next').classList.remove('hidden');
+  $('next').textContent = (idx+1>=TOTAL || lives<=0) ? 'CERRAR TURNO' : 'SIGUIENTE PACIENTE';
+  hud();
+}
+$('next').onclick=()=>{
+  idx++;
+  if(lives<=0 || idx>=TOTAL) return finish();
+  showQuestion();
+};
+$('matrona').onclick=()=>{
+  if(wildcard<=0 || answered || current.boss) return;
+  wildcard--; $('matrona').disabled=true; $('matrona').textContent='🤙 Comodín usado';
+  const wrong = current.opts.map((_,i)=>i).filter(i=>i!==current.a);
+  shuffle(wrong).slice(0,2).forEach(i=>{
+    const b=$('opts').children[i]; b.classList.add('dim'); b.disabled=true;
+  });
+  beep(440,.1,'triangle',.04);
+};
+let paused=false;
+function togglePausa(force){
+  const quiere = force===undefined ? !paused : force;
+  if(quiere===paused) return;
+  // no tiene sentido pausar fuera de una pregunta activa
+  if(quiere && (answered || !current || !$('menu').classList.contains('hidden')
+      || !$('over').classList.contains('hidden') || !$('ficha').classList.contains('hidden'))) return;
+  paused = quiere;
+  if(paused){
+    clearInterval(timer);
+    $('pausa').classList.remove('hidden');
+    $('carnet').classList.add('frozen');
+    $('pauseBtn').textContent='▶ SEGUIR';
+  }else{
+    $('pausa').classList.add('hidden');
+    $('carnet').classList.remove('frozen');
+    $('pauseBtn').textContent='⏸ PAUSA';
+    timer = setInterval(tick, 100);
+  }
+}
+$('pauseBtn').onclick=()=>togglePausa();
+$('resume').onclick=()=>togglePausa(false);
+
+function hud(){
+  $('score').textContent=score;
+  $('lives').textContent='♥'.repeat(Math.max(0,lives))||'—';
+  $('combo').textContent = mult>1 ? '☕ x2' : 'x1'+(streak?' ('+streak+')':'');
+  $('prog').textContent=Math.min(idx+1,TOTAL)+'/'+TOTAL;
+  $('best').textContent='TOP '+best;
+}
+function finish(){
+  togglePausa(false); clearInterval(timer);
+  if(score>best){best=score; localStorage.setItem('cns_best',best);}
+  const completo = idx>=TOTAL && lives>0;
+  $('overTag').textContent = completo?'TURNO COMPLETO':'BOX CERRADO ANTES DE TIEMPO';
+  $('overTitle').textContent = completo?'TURNO CERRADO':'TE QUEDASTE SIN VIDAS';
+  $('overText').textContent = 'Puntaje '+score+' · récord '+best+'. '+
+    (missed.length? 'Estos son los que se te fueron:' : 'Turno perfecto. Nada que revisar.');
+  $('overList').innerHTML = missed.slice(0,6).map(m=>
+    `<div style="border-left:3px solid #FF5470;padding-left:9px;margin:8px 0;font-size:13px;color:#C9DCE2">
+      <b style="color:#FFD166">${m.tag}</b><br>${m.q}<br><span style="color:#3FD69B">→ ${m.right}</span></div>`).join('');
+  $('over').classList.remove('hidden');
+}
+function start(){
+  score=0; lives=3; streak=0; mult=1; idx=0; wildcard=1; missed=[];
+  $('matrona').disabled=false; $('matrona').textContent='🤙 Preguntar a la matrona (1)';
+  $('menu').classList.add('hidden'); $('over').classList.add('hidden');
+  showQuestion();
+}
+$('play').onclick=start; $('again').onclick=start;
+
+/* ---- ficha ---- */
+function openFicha(){
+  const tags = [...new Set([...GENS.map(g=>g.tag), 'Caso complejo', ...Object.keys(stats)])];
+  const rows = tags.map(t=>{
+    const s=stats[t]||{ok:0,bad:0}, tot=s.ok+s.bad;
+    return {t, tot, pct: tot?Math.round(s.ok/tot*100):null};
+  }).sort((a,b)=>(a.pct===null)-(b.pct===null)||a.pct-b.pct);
+  $('fichaTbl').innerHTML = rows.map(r=>{
+    const col = r.pct===null?'#3A5260':r.pct>=80?'#3FD69B':r.pct>=50?'#FFD166':'#FF5470';
+    return `<tr><td style="color:#E7F1F3">${r.t}</td>
+      <td style="width:40%"><div class="bar"><i style="width:${r.pct||0}%;background:${col}"></i></div></td>
+      <td style="text-align:right;color:${col}">${r.pct===null?'—':r.pct+'%'}</td></tr>`;
+  }).join('');
+  $('ficha').classList.remove('hidden');
+}
+$('openFicha').onclick=openFicha; $('openFicha2').onclick=openFicha;
+$('closeFicha').onclick=()=>$('ficha').classList.add('hidden');
+$('resetFicha').onclick=()=>{Object.keys(stats).forEach(k=>delete stats[k]);
+  localStorage.setItem('cns_stats','{}'); openFicha();};
+
+addEventListener('keydown',e=>{
+  if(e.key==='p'||e.key==='P'||e.key==='Escape'){ togglePausa(); return; }
+  if(paused) return;
+  if(['1','2','3','4','5'].includes(e.key)){
+    const b=$('opts').children[+e.key-1]; if(b && !b.disabled) b.click();
+  }
+  if(e.key==='Enter' && !$('next').classList.contains('hidden')) $('next').click();
+});
+
+drawBaby('?'); hud(); renderQueue();
+</script>
+</body>
+</html>
